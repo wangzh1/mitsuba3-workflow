@@ -1,19 +1,22 @@
-import mitsuba as mi
+import time
+from typing import Any, Dict, List
+from abc import ABC, abstractmethod
+
 import drjit as dr
+import mitsuba as mi
 import numpy as np
 import tqdm
-import time
+import wandb
 
 
-class MitsubaTrainer:
+class MitsubaTrainer(ABC):
     def __init__(self,
                  scene: mi.Scene,
-                 params: mi.ParameterMap,
+                 params: mi.SceneParameters,
                  optimizer: mi.ad.Adam = None,
                  criterion: callable = None,
                  max_epochs: int = 100,
-                 lr_scheduler: ,
-                 device='cuda'):
+                 device: str = 'cuda'):
         """
         Args:
             scene (mi.Scene): Mitsuba scene to render.
@@ -29,18 +32,29 @@ class MitsubaTrainer:
         self.optimizer = optimizer
         self.criterion = criterion
         self.max_epochs = max_epochs
-        self.lr_scheduler = lr_scheduler
         self.device = device
 
         # Initialize Mitsuba rendering
         mi.set_variant('cuda_ad_rgb' if device == 'cuda' else 'llvm_ad_rgb')
-
+    @abstractmethod
     def render(self):
         """Renders the scene using Mitsuba."""
         image = mi.render(self.scene, self.params)
         return image
 
-    def train(self, target_image):
+    @abstractmethod
+    def fitting_step(self, target_image) -> Dict[str, Any]:
+        """
+        Performs a single fitting step.
+        Args:
+            target_image (mi.TensorXf): Target image to match.
+        Returns:
+            float: Loss value for the current step.
+        """
+        raise NotImplementedError
+
+
+    def fit(self, target_image):
         """
         Training loop to optimize scene parameters.
 
@@ -63,15 +77,6 @@ class MitsubaTrainer:
             # Update parameters
             self.optimizer.step()
 
-            # Update learning rate
-            if self.lr_scheduler:
-                self.lr_scheduler.step(loss)
-
-            # Log progress
-            if (epoch + 1) % 10 == 0:
-                print(
-                    f"Epoch [{epoch + 1}/{self.max_epochs}], Loss: {loss.item():.4f}")
-
         print("Training complete.")
 
     def save_params(self, filename):
@@ -81,43 +86,3 @@ class MitsubaTrainer:
     def load_params(self, filename):
         """Loads parameters from a file."""
         self.params.read(filename)
-
-
-# Example usage
-if __name__ == "__main__":
-    # Load Mitsuba scene
-    scene = mi.load_file("scene.xml")
-
-    # Define differentiable parameters (e.g., material reflectance, light intensity)
-    params = mi.traverse(scene)
-    param_key = "material.reflectance.value"
-    dr.enable_grad(params[param_key])
-
-    # Define optimizer (e.g., Adam)
-    optimizer = mi.ad.Adam(lr=0.01)
-    optimizer.set_params(params)
-
-    # Define loss function (e.g., L2 loss between rendered and target image)
-    def l2_loss(rendered: mi.TensorXf,
-                target: mi.TensorXf) -> mi.TensorXf:
-        return dr.sum(dr.sqr(rendered - target))
-
-    # Define target image (e.g., pre-rendered or synthetic)
-    # Replace with actual target image
-    target_image = mi.TensorXf(np.random.rand(256, 256, 3))
-
-    # Initialize trainer
-    trainer = MitsubaTrainer(
-        scene=scene,
-        params=params,
-        optimizer=optimizer,
-        criterion=l2_loss,
-        max_epochs=100,
-        device='cuda'
-    )
-
-    # Train
-    trainer.train(target_image)
-
-    # Save optimized parameters
-    trainer.save_params("optimized_params.xml")

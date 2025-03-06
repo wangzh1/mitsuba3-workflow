@@ -1,0 +1,25 @@
+# @package _global_
+
+# specify here default configuration
+# order of defaults determines the order in which configs override each other
+defaults:
+  - _self_
+  - logger: wandb # set logger here or use command line (e.g. `python train.py logger=tensorboard`)
+  - trainer: image
+  - paths: default
+  - hydra: default
+  # debugging config (enable through command line, e.g. `python train.py debug=default)
+  # - debug: null
+
+# task name, determines output directory path
+task_name: "paired_0.5lgan_3e-6lr"
+
+# tags to help you identify your experiments
+# you can overwrite this in experiment configs
+# overwrite from command line with `python train.py tags="[first_tag, second_tag]"`
+# tags: ["dev"]
+
+train: True
+
+test: True
+

@@ -1,0 +1,9 @@
+_target_: src.models.trainer_base.MitsubaTrainer
+
+default_root_dir: ${paths.output_dir}
+
+max_epochs: -1 
+max_steps: 375000 
+val_check_interval: 500
+
+device: cpu
