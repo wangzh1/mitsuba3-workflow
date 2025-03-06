@@ -56,7 +56,8 @@ class ImageTrainer(MitsubaTrainer):
 
         # Set another color value and update the scene
         params[key] = mi.Color3f(0.01, 0.2, 0.9)
-        
+
         params.update()
+        return param_ref
     def fitting_step(self, target_image):
         pass
