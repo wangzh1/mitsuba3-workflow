@@ -1,7 +1,5 @@
 _target_: src.models.trainer_image.ImageTrainer
 
-default_root_dir: ${paths.output_dir}
-
 max_stages: -1 # infinite training
 max_steps: 375000 # 25k step * 5 bcs each batch needs 5 optimizer steps
 

@@ -4,15 +4,16 @@
 # order of defaults determines the order in which configs override each other
 defaults:
   - _self_
-  - logger: wandb # set logger here or use command line (e.g. `python train.py logger=tensorboard`)
-  - trainer: image
-  - paths: default
+  - extras: default
   - hydra: default
+  - logger: wandb # set logger here or use command line (e.g. `python train.py logger=tensorboard`)
+  - paths: default
+  - trainer: image
   # debugging config (enable through command line, e.g. `python train.py debug=default)
   # - debug: null
 
 # task name, determines output directory path
-task_name: "paired_0.5lgan_3e-6lr"
+task_name: "fit_image_test"
 
 # tags to help you identify your experiments
 # you can overwrite this in experiment configs
@@ -21,5 +22,5 @@ task_name: "paired_0.5lgan_3e-6lr"
 
 train: True
 
-test: True
+test: False
 

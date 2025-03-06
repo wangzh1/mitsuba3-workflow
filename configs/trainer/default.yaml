@@ -6,4 +6,4 @@ max_epochs: -1
 max_steps: 375000 
 val_check_interval: 500
 
-device: cpu
+device: llvm
