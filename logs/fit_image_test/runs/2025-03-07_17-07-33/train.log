@@ -1,9 +1,0 @@
-[2025-03-07 17:07:33,828][src.utils.utils][INFO] - Disabling python warnings! <cfg.extras.ignore_warnings=True>
-[2025-03-07 17:07:33,828][src.utils.utils][INFO] - Enforcing tags! <cfg.extras.enforce_tags=True>
-[2025-03-07 17:07:33,831][src.utils.utils][INFO] - Printing config tree with Rich! <cfg.extras.print_config=True>
-[2025-03-07 17:07:33,831][src.utils.rich_utils][WARNING] - Field 'data' not found in config. Skipping 'data' config printing...
-[2025-03-07 17:07:33,831][src.utils.rich_utils][WARNING] - Field 'model' not found in config. Skipping 'model' config printing...
-[2025-03-07 17:07:33,831][src.utils.rich_utils][WARNING] - Field 'callbacks' not found in config. Skipping 'callbacks' config printing...
-[2025-03-07 17:07:33,846][__main__][INFO] - Instantiating trainer <src.models.trainer_image.ImageTrainer>
-[2025-03-07 17:07:34,566][src.utils.instantiators][INFO] - Instantiating wandb logger for project <image_fit_test>, name <init_try>
-[2025-03-07 17:07:34,566][__main__][INFO] - Starting training!
