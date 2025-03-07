@@ -1,63 +1,62 @@
 import time
-from typing import Optional, Callable
+from typing import Any, Callable, Dict, Optional
 
 import drjit as dr
 import mitsuba as mi
 import tqdm
 from omegaconf import DictConfig
 
-from models.trainer_base import MitsubaTrainer
-from models.misc import MSE
+from src.models.misc.criterion import MSE
+from src.models.trainer_base import MitsubaTrainer
 
 
 class ImageTrainer(MitsubaTrainer):
     def __init__(self,
-                 scene: mi.Scene = None,
-                 params: mi.SceneParameters = None,
-                 optimizer: mi.ad.Adam = None,
-                 criterion: Callable = None,
+                 scene_path: str = '/Users/wangzh/Desktop/ShanghaiTech/Spring_2025/ICCP2025/mitsuba3-workflow/scenes/cbox.xml',
+                 criterion: Callable = MSE(),
+                 learning_rate: float = 0.1,
                  max_stages: int = 1,
                  max_iterations: int = 500,
+                 val_interval: int = 1,
                  device: str = 'cuda'):
         """
         Args:
-            scene (mi.Scene): Mitsuba scene to render.
-            params (mi.ParameterMap or dict): Differentiable parameters to optimize.
-            optimizer (torch.optim.Optimizer): Optimizer for gradient-based updates.
+            scene_path (str): Path to the Mitsuba scene file.
             criterion (Callable): Loss function to minimize; takes rendered image and target as input.
-            max_epochs (int): Maximum number of training epochs.
-            max_iterations (int): Maximum number of iterations per epoch.
+            learning_rate (float): Learning rate for the optimizer.
+            max_stages (int): Maximum number of training stages.
+            max_iterations (int): Maximum number of iterations per stage.
             device (str): Device to use (e.g., 'cuda' or 'cpu').
         """
-        self.scene = scene
-        self.params = params
-        self.optimizer = optimizer
-        self.criterion = MSE()
+        mi.set_variant('cuda_ad_rgb' if device == 'cuda' else 'llvm_ad_rgb')
+        self.scene_path = scene_path
+        self.scene = mi.load_file(self.scene_path, res=128, integrator='prb')
+        self.gt = self.init_ground_truth(self.scene)
+
+        self.params = mi.traverse(self.scene)
+        self.keys_to_optimize = ['red.reflectance.value']
+        self.params['red.reflectance.value'] = mi.Color3f(0.01, 0.2, 0.9)
+        self.optimizer = mi.ad.Adam(lr=learning_rate, params={key: self.params[key] for key in self.keys_to_optimize})
+        self.params.update(self.optimizer)
+        self.criterion = criterion
         self.max_stages = max_stages
         self.max_iterations = max_iterations
+        self.val_interval = val_interval
         self.device = device
-        
-        self.gt = self.init_ground_truth()
-
         # Initialize Mitsuba rendering
-        mi.set_variant('cuda_ad_rgb' if device == 'cuda' else 'llvm_ad_rgb')
 
-    def init_ground_truth(self):
+    @staticmethod
+    def init_ground_truth(scene) -> Dict[str, Any]:
         """
         Initialize the ground truth image.
         """
-        scene = mi.load_file('../scenes/cbox.xml', res=128, integrator='prb')
-        params = mi.traverse(scene)
-
-        key = 'red.reflectance.value'
-
-        # Save the original value
-        param_ref = mi.Color3f(params[key])
-
-        # Set another color value and update the scene
-        params[key] = mi.Color3f(0.01, 0.2, 0.9)
-
-        params.update()
-        return param_ref
-    def fitting_step(self, target_image):
-        pass
+        image_ref = mi.render(scene, spp=512)
+        return {'image_ref': image_ref}
+    
+    def fitting_step(self):
+        image = mi.render(self.scene, self.params, spp=4)
+    
+        # Evaluate the objective function from the current rendered image
+        loss = self.criterion(image, self.gt['image_ref'])
+        
+        return loss

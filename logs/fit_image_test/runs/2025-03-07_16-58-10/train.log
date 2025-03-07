@@ -1,0 +1,17 @@
+[2025-03-07 16:58:10,792][src.utils.utils][INFO] - Disabling python warnings! <cfg.extras.ignore_warnings=True>
+[2025-03-07 16:58:10,793][src.utils.utils][INFO] - Enforcing tags! <cfg.extras.enforce_tags=True>
+[2025-03-07 16:58:10,795][src.utils.utils][INFO] - Printing config tree with Rich! <cfg.extras.print_config=True>
+[2025-03-07 16:58:10,795][src.utils.rich_utils][WARNING] - Field 'data' not found in config. Skipping 'data' config printing...
+[2025-03-07 16:58:10,795][src.utils.rich_utils][WARNING] - Field 'model' not found in config. Skipping 'model' config printing...
+[2025-03-07 16:58:10,795][src.utils.rich_utils][WARNING] - Field 'callbacks' not found in config. Skipping 'callbacks' config printing...
+[2025-03-07 16:58:10,808][__main__][INFO] - Instantiating trainer <src.models.trainer_image.ImageTrainer>
+[2025-03-07 16:58:10,944][src.utils.utils][ERROR] - 
+Traceback (most recent call last):
+  File "/Users/wangzh/Desktop/ShanghaiTech/Spring_2025/ICCP2025/mitsuba3-workflow/src/utils/utils.py", line 68, in wrap
+    metric_dict, object_dict = task_func(cfg=cfg)
+  File "/Users/wangzh/Desktop/ShanghaiTech/Spring_2025/ICCP2025/mitsuba3-workflow/src/train.py", line 35, in train
+    utils.instantiate_loggers(cfg.get("logger"), object_dict=object_dict)
+  File "/Users/wangzh/Desktop/ShanghaiTech/Spring_2025/ICCP2025/mitsuba3-workflow/src/utils/instantiators.py", line 29, in instantiate_loggers
+    wandb.init(**lg_conf, config=object_dict)
+TypeError: init() got an unexpected keyword argument 'save_dir'
+[2025-03-07 16:58:10,945][src.utils.utils][INFO] - Output dir: /Users/wangzh/Desktop/ShanghaiTech/Spring_2025/ICCP2025/mitsuba3-workflow/logs/fit_image_test/runs/2025-03-07_16-58-10

@@ -25,7 +25,6 @@ def instantiate_loggers(logger_cfg: DictConfig, object_dict: Dict[str, Any]) -> 
 
     for _, lg_conf in logger_cfg.items():
         if isinstance(lg_conf, DictConfig):
-            lg_conf = dict(lg_conf)
             wandb.init(**lg_conf, config=object_dict)
             log.info(f"Instantiating wandb logger for project <{lg_conf.project}>, name <{lg_conf.name}>")
         else:

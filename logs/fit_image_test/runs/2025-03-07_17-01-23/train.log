@@ -1,0 +1,20 @@
+[2025-03-07 17:01:23,990][src.utils.utils][INFO] - Disabling python warnings! <cfg.extras.ignore_warnings=True>
+[2025-03-07 17:01:23,990][src.utils.utils][INFO] - Enforcing tags! <cfg.extras.enforce_tags=True>
+[2025-03-07 17:01:23,993][src.utils.utils][INFO] - Printing config tree with Rich! <cfg.extras.print_config=True>
+[2025-03-07 17:01:23,993][src.utils.rich_utils][WARNING] - Field 'data' not found in config. Skipping 'data' config printing...
+[2025-03-07 17:01:23,993][src.utils.rich_utils][WARNING] - Field 'model' not found in config. Skipping 'model' config printing...
+[2025-03-07 17:01:23,993][src.utils.rich_utils][WARNING] - Field 'callbacks' not found in config. Skipping 'callbacks' config printing...
+[2025-03-07 17:01:24,006][__main__][INFO] - Instantiating trainer <src.models.trainer_image.ImageTrainer>
+[2025-03-07 17:01:27,074][src.utils.instantiators][INFO] - Instantiating wandb logger for project <image_fit_test>, name <init_try>
+[2025-03-07 17:01:30,282][__main__][INFO] - Starting training!
+[2025-03-07 17:01:30,697][src.utils.utils][ERROR] - 
+Traceback (most recent call last):
+  File "/Users/wangzh/Desktop/ShanghaiTech/Spring_2025/ICCP2025/mitsuba3-workflow/src/utils/utils.py", line 68, in wrap
+    metric_dict, object_dict = task_func(cfg=cfg)
+  File "/Users/wangzh/Desktop/ShanghaiTech/Spring_2025/ICCP2025/mitsuba3-workflow/src/train.py", line 40, in train
+    trainer.fit()
+  File "/Users/wangzh/Desktop/ShanghaiTech/Spring_2025/ICCP2025/mitsuba3-workflow/src/models/trainer_base.py", line 84, in fit
+    self.optimizer.zero_grad()
+AttributeError: 'Adam' object has no attribute 'zero_grad'
+[2025-03-07 17:01:30,700][src.utils.utils][INFO] - Output dir: /Users/wangzh/Desktop/ShanghaiTech/Spring_2025/ICCP2025/mitsuba3-workflow/logs/fit_image_test/runs/2025-03-07_17-01-23
+[2025-03-07 17:01:30,700][src.utils.utils][INFO] - Closing wandb!

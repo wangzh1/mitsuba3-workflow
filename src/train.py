@@ -1,17 +1,17 @@
-from src import utils
 from omegaconf import DictConfig
 import rootutils
 import hydra
 from typing import Any, Dict, List, Optional, Tuple
-from src.models.trainer_base import MitsubaTrainer
 
 
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
+from src.models.trainer_base import MitsubaTrainer
+from src import utils
+
 log = utils.get_pylogger(__name__)
 
 
-@utils.task_wrapper
 def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Trains the model. Can additionally evaluate on a testset, using best weights obtained during
     training.
@@ -59,7 +59,7 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     return 
 
 
-@hydra.main(version_base="1.3", config_path="./configs", config_name="train_paired.yaml")
+@hydra.main(version_base="1.3", config_path="../configs", config_name="fit_image.yaml")
 def main(cfg: DictConfig) -> Optional[float]:
     """Main entry point for training.
 

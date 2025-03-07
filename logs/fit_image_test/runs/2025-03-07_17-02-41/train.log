@@ -1,0 +1,46 @@
+[2025-03-07 17:02:41,250][src.utils.utils][INFO] - Disabling python warnings! <cfg.extras.ignore_warnings=True>
+[2025-03-07 17:02:41,250][src.utils.utils][INFO] - Enforcing tags! <cfg.extras.enforce_tags=True>
+[2025-03-07 17:02:41,253][src.utils.utils][INFO] - Printing config tree with Rich! <cfg.extras.print_config=True>
+[2025-03-07 17:02:41,253][src.utils.rich_utils][WARNING] - Field 'data' not found in config. Skipping 'data' config printing...
+[2025-03-07 17:02:41,253][src.utils.rich_utils][WARNING] - Field 'model' not found in config. Skipping 'model' config printing...
+[2025-03-07 17:02:41,253][src.utils.rich_utils][WARNING] - Field 'callbacks' not found in config. Skipping 'callbacks' config printing...
+[2025-03-07 17:02:41,266][__main__][INFO] - Instantiating trainer <src.models.trainer_image.ImageTrainer>
+[2025-03-07 17:02:42,020][src.utils.instantiators][INFO] - Instantiating wandb logger for project <image_fit_test>, name <init_try>
+[2025-03-07 17:02:42,020][__main__][INFO] - Starting training!
+[2025-03-07 17:02:43,483][src.utils.utils][ERROR] - 
+Traceback (most recent call last):
+  File "/Users/wangzh/Desktop/ShanghaiTech/Spring_2025/ICCP2025/mitsuba3-workflow/src/utils/utils.py", line 68, in wrap
+    metric_dict, object_dict = task_func(cfg=cfg)
+  File "/Users/wangzh/Desktop/ShanghaiTech/Spring_2025/ICCP2025/mitsuba3-workflow/src/train.py", line 40, in train
+    trainer.fit()
+  File "/Users/wangzh/Desktop/ShanghaiTech/Spring_2025/ICCP2025/mitsuba3-workflow/src/models/trainer_base.py", line 95, in fit
+    wandb.log({"val_image": wandb.Image(image_val),
+  File "/opt/miniconda3/envs/mi3/lib/python3.10/site-packages/wandb/sdk/wandb_run.py", line 449, in wrapper
+    return func(self, *args, **kwargs)
+  File "/opt/miniconda3/envs/mi3/lib/python3.10/site-packages/wandb/sdk/wandb_run.py", line 401, in wrapper_fn
+    return func(self, *args, **kwargs)
+  File "/opt/miniconda3/envs/mi3/lib/python3.10/site-packages/wandb/sdk/wandb_run.py", line 391, in wrapper
+    return func(self, *args, **kwargs)
+  File "/opt/miniconda3/envs/mi3/lib/python3.10/site-packages/wandb/sdk/wandb_run.py", line 1873, in log
+    self._log(data=data, step=step, commit=commit)
+  File "/opt/miniconda3/envs/mi3/lib/python3.10/site-packages/wandb/sdk/wandb_run.py", line 1587, in _log
+    self._partial_history_callback(data, step, commit)
+  File "/opt/miniconda3/envs/mi3/lib/python3.10/site-packages/wandb/sdk/wandb_run.py", line 1417, in _partial_history_callback
+    self._backend.interface.publish_partial_history(
+  File "/opt/miniconda3/envs/mi3/lib/python3.10/site-packages/wandb/sdk/interface/interface.py", line 684, in publish_partial_history
+    item.value_json = json_dumps_safer_history(v)
+  File "/opt/miniconda3/envs/mi3/lib/python3.10/site-packages/wandb/util.py", line 816, in json_dumps_safer_history
+    return dumps(obj, cls=WandBHistoryJSONEncoder, **kwargs)
+  File "/opt/miniconda3/envs/mi3/lib/python3.10/json/__init__.py", line 238, in dumps
+    **kw).encode(obj)
+  File "/opt/miniconda3/envs/mi3/lib/python3.10/json/encoder.py", line 199, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+  File "/opt/miniconda3/envs/mi3/lib/python3.10/json/encoder.py", line 257, in iterencode
+    return _iterencode(o, 0)
+  File "/opt/miniconda3/envs/mi3/lib/python3.10/site-packages/wandb/util.py", line 779, in default
+    return json.JSONEncoder.default(self, obj)
+  File "/opt/miniconda3/envs/mi3/lib/python3.10/json/encoder.py", line 179, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type TensorXf is not JSON serializable
+[2025-03-07 17:02:43,486][src.utils.utils][INFO] - Output dir: /Users/wangzh/Desktop/ShanghaiTech/Spring_2025/ICCP2025/mitsuba3-workflow/logs/fit_image_test/runs/2025-03-07_17-02-41
+[2025-03-07 17:02:43,487][src.utils.utils][INFO] - Closing wandb!
