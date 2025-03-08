@@ -59,7 +59,7 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     return 
 
 
-@hydra.main(version_base="1.3", config_path="../configs", config_name="fit_image.yaml")
+@hydra.main(version_base="1.3", config_path="./configs", config_name="fit_image.yaml")
 def main(cfg: DictConfig) -> Optional[float]:
     """Main entry point for training.
 

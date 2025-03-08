@@ -1,34 +1,66 @@
 import time
-from typing import Optional
+from typing import Any, Callable, Dict, Optional
 
 import drjit as dr
 import mitsuba as mi
 import tqdm
 from omegaconf import DictConfig
 
-from models.trainer_base import MitsubaTrainer
+from src.models.misc.criterion import MSE
+from src.models.trainer_base import MitsubaTrainer
 
 
 class TransientTrainer(MitsubaTrainer):
     def __init__(self,
-                 scene: mi.Scene,
-                 params: mi.SceneParameters,
-                 optimizer: mi.ad.Adam = None,
-                 criterion: callable = None,
-                 max_epochs: int = 100,
+                 scene_path: str = None,
+                 criterion: Callable = MSE(),
+                 learning_rate: float = 0.1,
+                 max_stages: int = 1,
+                 max_iterations: int = 500,
+                 val_interval: int = 1,
                  device: str = 'cuda'):
-        super().__init__(scene, params, optimizer, criterion, max_epochs, device)
+        """
+        Args:
+            scene_path: Path to the scene to be trained.
+            criterion: Criterion to be used for training.
+            learning_rate: Learning rate for the optimizer.
+            max_stages: Maximum number of stages for training.
+            max_iterations: Maximum number of iterations for each stage.
+            val_interval: Interval for validation.
+            device: Device to be used for training.
+        """
+        mi.set_variant('cuda_ad_rgb' if device == 'cuda' else 'llvm_ad_rgb')
+        if scene_path is None:
+            raise ValueError("Scene path must be provided!")
+        self.scene_path = scene_path
+        self.scene = mi.load_file(self.scene_path, res=128, integrator='prb')
+        
+        self.gt = self.init_ground_truth(self.scene)
 
-    def fit(self, target_image):
-        with tqdm(range(self.max_epochs), desc="Fitting") as pbar:
-            for epoch in pbar:
-                start_time = time.time()
-                self.optimizer.zero_grad()
-                rendered_image = self.render()
-                loss = self.criterion(rendered_image, target_image)
-                dr.backward(loss)
+        self.params = mi.traverse(self.scene)
+        self.keys_to_optimize = ['red.reflectance.value']
+        self.params['red.reflectance.value'] = mi.Color3f(0.01, 0.2, 0.9)
+        self.optimizer = mi.ad.Adam(lr=learning_rate, params={key: self.params[key] for key in self.keys_to_optimize})
+        self.params.update(self.optimizer)
+        self.criterion = criterion
+        self.max_stages = max_stages
+        self.max_iterations = max_iterations
+        self.val_interval = val_interval
+        self.device = device
+        # Initialize Mitsuba rendering
 
-                self.optimizer.step()
-                end_time = time.time()
-                epoch_time = end_time - start_time
-                pbar.set_postfix({'loss': f"{loss.item():.4f}"})
+    @staticmethod
+    def init_ground_truth(scene) -> Dict[str, Any]:
+        """
+        Initialize the ground truth image.
+        """
+        image_ref = mi.render(scene, spp=512)
+        return {'image_ref': image_ref}
+    
+    def fitting_step(self):
+        image = mi.render(self.scene, self.params, spp=4)
+    
+        # Evaluate the objective function from the current rendered image
+        loss = self.criterion(image, self.gt['image_ref'])
+        
+        return loss

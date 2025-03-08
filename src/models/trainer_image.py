@@ -12,7 +12,7 @@ from src.models.trainer_base import MitsubaTrainer
 
 class ImageTrainer(MitsubaTrainer):
     def __init__(self,
-                 scene_path: str = '/Users/wangzh/Desktop/ShanghaiTech/Spring_2025/ICCP2025/mitsuba3-workflow/scenes/cbox.xml',
+                 scene_path: str = None,
                  criterion: Callable = MSE(),
                  learning_rate: float = 0.1,
                  max_stages: int = 1,
@@ -29,8 +29,11 @@ class ImageTrainer(MitsubaTrainer):
             device (str): Device to use (e.g., 'cuda' or 'cpu').
         """
         mi.set_variant('cuda_ad_rgb' if device == 'cuda' else 'llvm_ad_rgb')
+        if scene_path is None:
+            raise ValueError("Scene path must be provided!")
         self.scene_path = scene_path
         self.scene = mi.load_file(self.scene_path, res=128, integrator='prb')
+        
         self.gt = self.init_ground_truth(self.scene)
 
         self.params = mi.traverse(self.scene)

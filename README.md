@@ -1,6 +1,6 @@
 # Mitsuba3-workflow
 requirements:
-- mitsuba
+- mitsuba==3.6.4
 - mitransient
 - wandb
 - rich

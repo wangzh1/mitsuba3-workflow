@@ -1,8 +1,8 @@
 _target_: src.models.trainer_image.ImageTrainer
 
-scene_path: '/Users/wangzh/Desktop/ShanghaiTech/Spring_2025/ICCP2025/mitsuba3-workflow/scenes/cbox.xml'
-learning_rate: 0.1
+scene_path: '/public/home/wangzh1/iccp2025/mitsuba3-workflow/scenes/cbox.xml'
+learning_rate: 0.05
 max_stages: 1
 max_iterations: 100
-val_interval: 1
-device: 'cpu'
+val_interval: 10
+device: 'cuda'

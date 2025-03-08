@@ -3,3 +3,5 @@
 wandb:
   name: "init_try" # RUN NAME
   project: "image_fit_test" # PROJECT NAME
+  id: "1" # RUN ID
+  dir: ${paths.output_dir}/
