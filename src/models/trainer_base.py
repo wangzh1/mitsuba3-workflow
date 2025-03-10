@@ -98,7 +98,7 @@ class MitsubaTrainer(ABC):
             
                 iter_pbar.set_description(f"Iteration {iter + 1}/{self.max_iterations}, Loss: {loss}")
                 if (iter + 1) % self.val_interval == 0:
-                    image_vis = np.array(mi.util.convert_to_bitmap(iter_result['image_vis']))
+                    image_vis = iter_result['image_vis']
                     wandb.log({"val_image": wandb.Image(image_vis),
                                "loss": np.array(loss)}, step=iter + 1)
                 self.on_iter_end()

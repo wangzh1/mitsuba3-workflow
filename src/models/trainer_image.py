@@ -3,6 +3,7 @@ from typing import Any, Callable, Dict, Optional
 
 import drjit as dr
 import mitsuba as mi
+import numpy as np
 import tqdm
 from omegaconf import DictConfig
 
@@ -58,9 +59,12 @@ class ImageTrainer(MitsubaTrainer):
     
     def fitting_step(self, idx):
         image = mi.render(self.scene, self.params, spp=4)
-    
+        image = np.array(mi.util.convert_to_bitmap(image))
+        image_gt = np.array(mi.util.convert_to_bitmap(self.gt['image_ref']))
+        image_vis = np.hstack([image, image_gt])
         # Evaluate the objective function from the current rendered image
         loss = self.criterion(image, self.gt['image_ref'])
         
+
         return {'loss': loss,
-                'image_vis': image}
+                'image_vis': image_vis}
