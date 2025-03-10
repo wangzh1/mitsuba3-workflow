@@ -67,6 +67,12 @@ class MitsubaTrainer(ABC):
     def on_stage_end(self):
         pass
 
+    def on_iter_start(self):
+        pass
+
+    def on_iter_end(self):
+        pass
+
     def fit(self):
         """
         Training loop to optimize scene parameters.
@@ -80,20 +86,22 @@ class MitsubaTrainer(ABC):
             iter_pbar = tqdm(range(self.max_iterations), desc="Iterations", unit="iter", position=1, leave=False)
 
             for iter in iter_pbar:
-                loss = self.fitting_step()
+                self.on_iter_start()
+                iter_result = self.fitting_step(iter)
+                loss = iter_result['loss']
                 dr.backward(loss)
                 self.optimizer.step()
                 # Post-process the optimized parameters to ensure legal color values.
-                for key in self.keys_to_optimize:
-                    self.params[key] = dr.clip(self.params[key], 0.0, 1.0)
+                # for key in self.keys_to_optimize:
+                #     self.params[key] = dr.clip(self.params[key], 0.0, 1.0)
                 self.params.update(self.optimizer)
             
                 iter_pbar.set_description(f"Iteration {iter + 1}/{self.max_iterations}, Loss: {loss}")
                 if (iter + 1) % self.val_interval == 0:
-                    image_val = mi.render(self.scene, params=self.params, spp=128)
-                    image_val = np.array(mi.util.convert_to_bitmap(image_val))
-                    wandb.log({"val_image": wandb.Image(image_val),
+                    image_vis = np.array(mi.util.convert_to_bitmap(iter_result['image_vis']))
+                    wandb.log({"val_image": wandb.Image(image_vis),
                                "loss": np.array(loss)}, step=iter + 1)
+                self.on_iter_end()
             
             self.on_stage_end()
             # Update stage progress bar

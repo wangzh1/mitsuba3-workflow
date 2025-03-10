@@ -56,10 +56,11 @@ class ImageTrainer(MitsubaTrainer):
         image_ref = mi.render(scene, spp=512)
         return {'image_ref': image_ref}
     
-    def fitting_step(self):
+    def fitting_step(self, idx):
         image = mi.render(self.scene, self.params, spp=4)
     
         # Evaluate the objective function from the current rendered image
         loss = self.criterion(image, self.gt['image_ref'])
         
-        return loss
+        return {'loss': loss,
+                'image_vis': image}

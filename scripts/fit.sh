@@ -1,1 +1,0 @@
-python train.py -m db=mysql,postgresql schema=warehouse,support,school

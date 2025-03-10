@@ -1,7 +1,7 @@
 # Mitsuba3-workflow
 requirements:
 - mitsuba==3.6.4
-- mitransient
+- mitransient - https://github.com/wangzh1/mitransient.git
 - wandb
 - rich
 - hydra-core==1.3.2
