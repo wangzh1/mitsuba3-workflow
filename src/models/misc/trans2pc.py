@@ -4,55 +4,86 @@ from typing import Union
 import os 
 mi.set_variant('cuda_ad_rgb')
 import mitransient as mitr
+from tqdm import tqdm
 
-def generate_point_cloud(origin: np.array, 
-                         target: np.array, 
-                         up: np.array, 
-                         fov: Union[int, float], 
-                         resolution: int, 
-                         depth_map: np.array) -> np.array:
+def multi_view_generate_point_cloud_synthetic(scene_path : str,
+                                              origin_list: np.array, 
+                                              target_list: np.array,
+                                              up: np.array, 
+                                              fov: Union[int, float], 
+                                              resolution: tuple,
+                                              spp: int = 512) -> None:
     """
     Generate point cloud from depth map.
     
     params:
-        origin (np.array): camera position.
-        target (np.array): camera target point.
-        up (np.array): camera up direction.
-        fov (float): field of view in degrees.
-        resolution (tuple): image resolution (width, height).
-        depth_map (np.array): depth map.
+        scene_path (str): Path to the Mitsuba scene file, CAMERA_UNWARP=TRUE.
+        origin_list (np.array): Camera position of all viewpoints.
+        target_list (np.array): Camera target of all viewpoints.
+        up (np.array): Camera up direction, temporally set to be fixed.
+        fov (float): Field of view in degrees, temporally set to be fixed.
+        resolution (tuple): Image resolution (width, height), temporally set to be fixed.
     return:
-        point_cloud (np.array): generated point cloud.
+        None, save the point cloud to a file.
     """
+    scene = mi.load_file(os.path.abspath(scene_path))
+    params = mi.traverse(scene)
+    bin_width_opl = params['sensor.film.bin_width_opl']
+
+    if not params:
+        raise ValueError("Failed to traverse the scene parameters.")
+    if 'sensor.to_world' not in params:
+        raise ValueError("Sensor not found in the scene.")
+    if 'PointLight.position' not in params:
+        raise ValueError("Point light source not found in the scene.")
+    
     width, height = resolution
     fov_rad = np.deg2rad(fov)  
+    num_views = len(origin_list)
+    point_list = []
 
-    forward = target - origin
-    forward = forward / np.linalg.norm(forward) 
-    right = np.cross(forward, up)
-    right = right / np.linalg.norm(right)  
-    up = np.cross(right, forward) 
+    for i in tqdm(range(num_views), desc="Generating point cloud"):
 
-    aspect_ratio = width / height
-    plane_height = 2 * np.tan(fov_rad / 2)  
-    plane_width = plane_height * aspect_ratio 
+        origin = origin_list[i]
+        target = target_list[i]
 
-    x = np.linspace(-plane_width / 2, plane_width / 2, width)
-    y = np.linspace(plane_height / 2, -plane_height / 2, height)
-    xx, yy = np.meshgrid(x, y)
+        transform = mi.Transform4f().look_at(origin=origin, target=target, up=up)
+        params['sensor.to_world'] = transform
+        params['PointLight.position'] = origin
+        params.update()
+        _, data_transient = mi.render(scene, spp=spp)
+        data_transient_np = np.sum(np.array(data_transient), axis=-1)
+        
+        depth_map = np.argmax(data_transient_np, axis=2) * bin_width_opl
+            
+        forward = target - origin
+        forward = forward / np.linalg.norm(forward) 
+        right = np.cross(forward, up)
+        right = right / np.linalg.norm(right)  
+        up = np.cross(right, forward) 
 
-    directions = (
-        forward[np.newaxis, np.newaxis, :] +
-        right[np.newaxis, np.newaxis, :] * xx[:, :, np.newaxis] +
-        up[np.newaxis, np.newaxis, :] * yy[:, :, np.newaxis]
-    )
-    directions = directions / np.linalg.norm(directions, axis=2, keepdims=True) 
+        aspect_ratio = width / height
+        plane_height = 2 * np.tan(fov_rad / 2)  
+        plane_width = plane_height * aspect_ratio 
 
-    point_cloud = origin + directions * depth_map[:, :, np.newaxis]
+        x = np.linspace(-plane_width / 2, plane_width / 2, width)
+        y = np.linspace(plane_height / 2, -plane_height / 2, height)
+        xx, yy = np.meshgrid(x, y)
 
-    point_cloud = point_cloud.reshape(-1, 3)
+        directions = (
+            forward[np.newaxis, np.newaxis, :] +
+            right[np.newaxis, np.newaxis, :] * xx[:, :, np.newaxis] +
+            up[np.newaxis, np.newaxis, :] * yy[:, :, np.newaxis]
+        )
+        directions = directions / np.linalg.norm(directions, axis=2, keepdims=True) 
 
-    return point_cloud
+        point_cloud = origin + directions * depth_map[:, :, np.newaxis]
+
+        point_cloud = point_cloud.reshape(-1, 3)
+
+        point_list.append(point_cloud)
+
+    point_list = np.concatenate(point_list, axis=0)
 
 if __name__ == '__main__':
     # 加载场景
