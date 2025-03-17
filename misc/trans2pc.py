@@ -131,13 +131,15 @@ def multi_view_generate_point_cloud_real(transient_dir: str,
     point_list = []
 
     for i in tqdm(range(num_views), desc="Generating point cloud"):
+        
 
 
         data = sio.loadmat(os.path.join(transient_dir, transient_list[i]))
-        origin = data['camera_coordinate'].T
-        target = data['target_vector'].T
-        up = data['up_vector'].T
-        data_transient = np.roll(data['data'], shift=-3680, axis=-1).reshape(width, height, -1)
+        origin = data['camera_coordinate'][:, 0]
+        origin = origin * 1.1
+        target = data['target_vector'][:, 0]
+        up = data['up_vector'][:, 0]
+        data_transient = data['shifted_data'].reshape(width, height, -1)
         data_transient[..., 0:100] = 0
         data_transient[..., -100:] = 0
         fov = 24
@@ -160,7 +162,7 @@ def multi_view_generate_point_cloud_real(transient_dir: str,
         plane_width = plane_height * aspect_ratio 
 
         x = np.linspace(-plane_width / 2, plane_width / 2, width)
-        y = np.linspace(plane_height / 2, -plane_height / 2, height)
+        y = np.linspace(plane_height / 3 * 2, -plane_height / 3, height)
         xx, yy = np.meshgrid(x, y)
 
         directions = (
@@ -194,7 +196,7 @@ if __name__ == '__main__':
     #                                             spp=512,
     #                                             down_rate=0.1,
     #                                             point_cloud_path="pc.ply")
-    multi_view_generate_point_cloud_real(transient_dir='/public/home/wangzh1/iccp2025/mitsuba3-workflow/transient_scenes/real/dragon',
+    multi_view_generate_point_cloud_real(transient_dir='/public/home/wangzh1/iccp2025/mitsuba3-workflow/transient_scenes/real/dragon-3-17',
                                          fov=24,
                                          resolution=(128, 128),
                                          bin_width_opl=0.0012, # 4ps = 0.0012m
