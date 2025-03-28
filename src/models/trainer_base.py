@@ -17,7 +17,8 @@ class MitsubaTrainer(ABC):
                  max_stages: int = 1,
                  max_iterations: int = 500,
                  val_interval: int = 100,
-                 device: str = 'cuda'):
+                 device: str = 'cuda',
+                 manual_optmize: bool = False):
         """
         Args:
             scene_path (str): Path to the Mitsuba scene file.
@@ -41,6 +42,7 @@ class MitsubaTrainer(ABC):
         self.max_iterations = max_iterations
         self.val_interval = val_interval
         self.device = device
+        self.manual_optmize = manual_optmize
         # Initialize Mitsuba rendering
         mi.set_variant('cuda_ad_rgb' if device == 'cuda' else 'llvm_ad_rgb')
 
@@ -61,10 +63,10 @@ class MitsubaTrainer(ABC):
         """
         raise NotImplementedError
 
-    def on_stage_start(self):
+    def on_stage_start(self, stage_idx):
         pass
 
-    def on_stage_end(self):
+    def on_stage_end(self, stage_idx):
         pass
 
     def on_iter_start(self):
@@ -80,8 +82,8 @@ class MitsubaTrainer(ABC):
         # Outer progress bar for stages
         stage_pbar = tqdm(range(self.max_stages), desc="Stages", unit="stage", position=0)
 
-        for stage in stage_pbar:
-            self.on_stage_start()
+        for stage in enumerate(stage_pbar):
+            self.on_stage_start(stage)
             # Inner progress bar for iterations
             iter_pbar = tqdm(range(self.max_iterations), desc="Iterations", unit="iter", position=1, leave=False)
 
@@ -89,12 +91,13 @@ class MitsubaTrainer(ABC):
                 self.on_iter_start()
                 iter_result = self.fitting_step(iter)
                 loss = iter_result['loss']
-                dr.backward(loss)
-                self.optimizer.step()
-                # Post-process the optimized parameters to ensure legal color values.
-                # for key in self.keys_to_optimize:
-                #     self.params[key] = dr.clip(self.params[key], 0.0, 1.0)
-                self.params.update(self.optimizer)
+                if not self.manual_optmize:
+                    dr.backward(loss)
+                    self.optimizer.step()
+                    # Post-process the optimized parameters to ensure legal color values.
+                    # for key in self.keys_to_optimize:
+                    #     self.params[key] = dr.clip(self.params[key], 0.0, 1.0)
+                    self.params.update(self.optimizer)
             
                 iter_pbar.set_description(f"Iteration {iter + 1}/{self.max_iterations}, Loss: {loss}")
                 if (iter + 1) % self.val_interval == 0:
@@ -103,6 +106,6 @@ class MitsubaTrainer(ABC):
                                "loss": np.array(loss)}, step=iter + 1)
                 self.on_iter_end()
             
-            self.on_stage_end()
+            self.on_stage_end(stage)
             # Update stage progress bar
             stage_pbar.set_description(f"Stage {stage + 1}/{self.max_stages} completed")
