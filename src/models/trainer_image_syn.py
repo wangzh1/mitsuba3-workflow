@@ -1,3 +1,4 @@
+import os
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
@@ -8,15 +9,15 @@ import tqdm
 from gpytoolbox import remesh_botsch
 from omegaconf import DictConfig
 
+from src import utils
 from src.models.misc.criterion import *
 from src.models.trainer_base import MitsubaTrainer
-from src import utils
 
 log = utils.get_pylogger(__name__)
 
 criterion_classes = {'MSE': MSE, 'L1': L1, 'L1Smooth': L1Smooth}
 
-class TransientTrainer(MitsubaTrainer):
+class SyntheticImageTrainer(MitsubaTrainer):
     def __init__(self,
                  scene_path: str,
                  gt_path: str,
@@ -55,7 +56,6 @@ class TransientTrainer(MitsubaTrainer):
             lambda_large_steps: Large steps for the optimizer.
         """
         mi.set_variant('cuda_ad_rgb' if device == 'cuda' else 'llvm_ad_rgb')
-        import mitransient as mitr
         
         self.scene = mi.load_file(scene_path)
         log.info(f"Loaded scene from {scene_path}.")
@@ -104,58 +104,48 @@ class TransientTrainer(MitsubaTrainer):
         Return:
             Dict['loss': float, 'image_vis': np.ndarray]: 
         """
-        self.apply_transformation()
+        # self.apply_transformation()
+
+        # Multi-view optimization
+        total_loss = mi.Float(0.0)
+        image_vis_list = []
+        for sensor_idx in range(len(self.sensor_list)):
+
+            # Update sensor position
+            origin = self.sensor_list[sensor_idx]
+            target = self.target_list[sensor_idx]
+            up = self.up_list[sensor_idx]
+            transform = mi.Transform4f().look_at(origin=origin, target=target, up=up)
+            self.params['sensor.to_world'] = transform
+            self.params.update() # Need to update the scene after changing the sensor position
+            
+            # Update obj shape
+            for obj_name in self.shape_to_optimize:
+                self.params[f'{obj_name}.vertex_positions'] = self.opt_dict['ls_dict'][f'{obj_name}'].from_differential(self.opt_dict['opt_shape'][f'u_{obj_name}'])
+
+            # Updata obj material
+            for key in self.material_to_optimize:
+                self.params[key] = dr.clip(self.opt_dict['opt_material'][key], 0.0, 1.0)
+            
+            # Update light position
+            # self.params['PointLight.position'] = self.opt_dict['opt_pos']['trans']
+            self.params.update()
         
-        if self.sensor_list is not None:
-            # Multi-view optimization
-            total_loss = mi.Float(0.0)
-            image_vis_list = []
-            for sensor_idx in range(len(self.sensor_list)):
-                # Update sensor position
-                origin = self.sensor_list[sensor_idx]
-                target = self.target_list[sensor_idx]
-                up = self.up_list[sensor_idx]
-                transform = mi.Transform4f().look_at(origin=origin, target=target, up=up)
-                self.params['sensor.to_world'] = transform
-                self.params.update() # Need to update the scene after changing the sensor position
-
-                # Update obj shape
-                for obj_name in self.shape_to_optimize:
-                    self.params[f'{obj_name}.vertex_positions'] = self.opt_dict['ls_dict'][f'{obj_name}'].from_differential(self.opt_dict['opt_shape'][f'u_{obj_name}'])
-
-                # Updata obj material
-                for key in self.material_to_optimize:
-                    self.params[key] = self.opt_dict['opt_material'][key]
-                # Update light position
-                self.params['PointLight.position'] = self.opt_dict['opt_pos']['trans']
-                self.params.update()
-            
-                image, transient = mi.render(self.scene, self.params, spp=self.train_spp)
-                # loss = self.criterion(image, self.gt['image_ref'][sensor_idx])
-                loss = self.criterion(transient, self.gt['transient_ref'][sensor_idx])
-                total_loss += loss
-                image_vis_list.append(np.array(mi.util.convert_to_bitmap(image)))
-            
-            dr.backward(total_loss)
-            print("Shape grad:", dr.grad(self.opt_dict['opt_shape']['u_gen_book']))
-            print("Material grad:", dr.grad(self.opt_dict['opt_material']['gen_bunny.bsdf.reflectance.value']))
-            import pdb; pdb.set_trace()
-            self.opt_dict['opt_shape'].step()
-            dr.grad_enabled(self.opt_dict['opt_material']['gen_bunny.bsdf.reflectance.value'])
-            self.opt_dict['opt_material'].step()
-            self.opt_dict['opt_pos'].step()
-            loss = total_loss / len(self.sensor_list)
-            image_vis = np.vstack(image_vis_list)
-            image_vis_gt = np.vstack([np.array(mi.util.convert_to_bitmap(image)) for image in self.gt['image_ref']])
-            image_vis = np.hstack([image_vis, image_vis_gt])
-        else:
-            # Single-view optimization
-            #TODO: ALL
-            image, transient = mi.render(self.scene, self.params, spp=self.train_spp)
-            image = np.array(mi.util.convert_to_bitmap(image))
-            image_gt = np.array(mi.util.convert_to_bitmap(self.gt['image_ref']))
-            image_vis = np.hstack([image, image_gt])
-            loss = self.criterion(transient, self.gt['transient_ref']) 
+            image = mi.render(self.scene, self.params, spp=self.train_spp)
+            # loss = self.criterion(image, self.gt['image_ref'][sensor_idx])
+            loss = self.criterion(image, self.gt[sensor_idx])
+            total_loss += loss
+            image_vis_list.append(np.array(mi.util.convert_to_bitmap(image)))
+        
+        dr.backward(total_loss)
+        self.opt_dict['opt_shape'].step()
+        # dr.grad_enabled(self.opt_dict['opt_material']['gen_bunny.bsdf.reflectance.value'])
+        self.opt_dict['opt_material'].step()
+        self.opt_dict['opt_pos'].step()
+        loss = total_loss / len(self.sensor_list)
+        image_vis = np.vstack(image_vis_list)
+        image_vis_gt = np.vstack([np.array(mi.util.convert_to_bitmap(image)) for image in self.gt])
+        image_vis = np.hstack([image_vis, image_vis_gt])
         
         return {'loss': loss, 'image_vis': image_vis}
     
@@ -167,8 +157,29 @@ class TransientTrainer(MitsubaTrainer):
     
     def on_stage_end(self, stage_idx):
         """Called at the end of each stage"""
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        log.info(f"Stage {stage_idx} complete at {timestamp}")
+
+        # Create directory if not exists
+        os.makedirs("optimization_params", exist_ok=True)
+
+        # Save to a single text file
+        filename = f"optimization_params/stage_{stage_idx}_{timestamp}.txt"
+        with open(filename, 'w') as f:
+            f.write(f"Stage {stage_idx} Optimization Parameters\n")
+            f.write(f"Timestamp: {timestamp}\n\n")
+
+            # Save material parameters
+            f.write("\n=== Material Parameters ===\n")
+            for mat_name in self.material_to_optimize:
+                mat_value = self.params[mat_name].numpy()
+                f.write(f"\n{mat_name}:\n")
+                np.savetxt(f, mat_value.reshape(1, -1), fmt='%.6f')  # Save as a single line
+
+        log.info(f"Parameters saved to {filename}")
+
         if stage_idx == 0: 
-            log.info("\nCoarse stage complete, preparing for fine stage...")
+            log.info("Coarse stage complete, preparing for fine stage...")
 
 
     @staticmethod # TODO: DONE
@@ -198,14 +209,13 @@ class TransientTrainer(MitsubaTrainer):
     @staticmethod
     def init_ground_truth(scene) -> Dict[str, Any]:
         """Initialize single-view ground truth"""
-        image_ref, transient_ref = mi.render(scene, spp=1024)
-        return {'image_ref': image_ref, 'transient_ref': transient_ref}
+        image_ref = mi.render(scene, spp=16)  # Render the ground truth image
+        return [image_ref]
     
     @staticmethod
-    def init_multi_view_ground_truth(gt_path, sensor_list, target_list, up_list, spp) -> Dict[str, Any]:
+    def init_multi_view_ground_truth(gt_path, sensor_list, target_list, up_list, spp=16) -> Dict[str, Any]:
         """Initialize multi-view ground truth"""
         image_ref_list = []
-        transient_ref_list = []
         gt_scene = mi.load_file(gt_path)
         for i in range(len(sensor_list)):
             origin = sensor_list[i]
@@ -216,10 +226,9 @@ class TransientTrainer(MitsubaTrainer):
             params['sensor.to_world'] = transform
             params.update() # Need to update the scene after changing the sensor position
 
-            image_ref, transient_ref = mi.render(gt_scene, spp=spp)
+            image_ref = mi.render(gt_scene, spp=spp)
             image_ref_list.append(image_ref)
-            transient_ref_list.append(transient_ref)
-        return {'image_ref': image_ref_list, 'transient_ref': transient_ref_list}
+        return image_ref_list
     
     def apply_transformation(self):
         """Apply light source transformations based on current optimization state"""

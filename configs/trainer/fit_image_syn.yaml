@@ -1,0 +1,37 @@
+_target_: src.models.trainer_image_syn.SyntheticImageTrainer
+
+scene_path: 'transient_scenes/synthetic/cornell-box/cbox_bunny_gen_mi3.xml'
+gt_path: 'transient_scenes/synthetic/cornell-box/cbox_bunny_gt_mi3.xml'
+# shape_to_optimize: ['gen_bunny', 'gen_book', 'gen_apple']
+shape_to_optimize: 
+  - gen_apple 
+  - gen_bunny
+# material_to_optimize: ['gen_bunny.bsdf.reflectance.value', 'gen_apple.bsdf.reflectance.value', 'floor.bsdf.reflectance.value', 'back.bsdf.reflectance.value', 'greenwall.bsdf.reflectance.value']
+# material_to_optimize: ['gen_bunny.bsdf.reflectance.value', 'gen_apple.bsdf.reflectance.value', 'greenwall.bsdf.reflectance.value', 'floor.bsdf.reflectance.value', 'back.bsdf.reflectance.value']
+material_to_optimize: 
+  - gen_bunny.bsdf.base_color.value
+  - gen_bunny.bsdf.roughness.value 
+  - gen_bunny.bsdf.metallic.value
+  - gen_bunny.bsdf.specular
+  - gen_apple.bsdf.reflectance.value
+  - floor.bsdf.reflectance.value
+  - back.bsdf.reflectance.value
+  - greenwall.bsdf.reflectance.value
+sensor_list:
+  - [278, 278, -800]
+  - [1200, 278, 278]
+target_list: 
+  - [278, 278, -799]
+  - [1199, 278, 278]
+criterion: MSE
+lr_shape: 1e-5
+lr_material: 1e-2
+lr_pos: 1.0
+max_stages: 2
+max_iterations: 300
+val_interval: 50
+train_spp: 16
+val_spp: 1024
+device: 'cuda'
+lambda_large_steps: 25.0
+

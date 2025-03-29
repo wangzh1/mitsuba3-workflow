@@ -8,12 +8,12 @@ defaults:
   - hydra: default
   - logger: wandb # set logger here or use command line (e.g. `python train.py logger=tensorboard`)
   - paths: default
-  - trainer: fit_image
+  - trainer: fit_trans_syn
   # debugging config (enable through command line, e.g. `python train.py debug=default)
   # - debug: null
 
 # task name, determines output directory path
-task_name: "fit_image_test"
+task_name: "fit_trans_test"
 
 # tags to help you identify your experiments
 # you can overwrite this in experiment configs

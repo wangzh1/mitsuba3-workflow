@@ -1,4 +1,4 @@
-_target_: src.models.trainer_trans.TransientTrainer
+_target_: src.models.trainer_trans_real.RealTransientTrainer
 
 scene_path: 'transient_scenes/synthetic/cornell-box/cbox_bunny_gen.xml'
 gt_path: 'transient_scenes/synthetic/cornell-box/cbox_bunny_gt.xml'

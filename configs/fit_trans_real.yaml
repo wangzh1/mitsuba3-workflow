@@ -8,7 +8,7 @@ defaults:
   - hydra: default
   - logger: wandb # set logger here or use command line (e.g. `python train.py logger=tensorboard`)
   - paths: default
-  - trainer: fit_trans
+  - trainer: fit_trans_syn
   # debugging config (enable through command line, e.g. `python train.py debug=default)
   # - debug: null
 

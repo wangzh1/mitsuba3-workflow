@@ -17,7 +17,7 @@ log = utils.get_pylogger(__name__)
 
 criterion_classes = {'MSE': MSE, 'L1': L1, 'L1Smooth': L1Smooth}
 
-class ImageTrainer(MitsubaTrainer):
+class RealImageTrainer(MitsubaTrainer):
     def __init__(self,
                  scene_path: str,
                  gt_path: str,
@@ -138,9 +138,6 @@ class ImageTrainer(MitsubaTrainer):
             image_vis_list.append(np.array(mi.util.convert_to_bitmap(image)))
         
         dr.backward(total_loss)
-        # print("Shape grad:", dr.grad(self.opt_dict['opt_shape']['u_gen_book']))
-        # print("Material grad:", dr.grad(self.opt_dict['opt_material']['gen_bunny.bsdf.reflectance.value']))
-        # import pdb; pdb.set_trace()
         self.opt_dict['opt_shape'].step()
         # dr.grad_enabled(self.opt_dict['opt_material']['gen_bunny.bsdf.reflectance.value'])
         self.opt_dict['opt_material'].step()
@@ -171,13 +168,6 @@ class ImageTrainer(MitsubaTrainer):
         with open(filename, 'w') as f:
             f.write(f"Stage {stage_idx} Optimization Parameters\n")
             f.write(f"Timestamp: {timestamp}\n\n")
-
-            # # Save shape parameters
-            # f.write("=== Shape Parameters ===\n")
-            # for obj_name in self.shape_to_optimize:
-            #     vertices = self.params[f'{obj_name}.vertex_positions'].numpy()
-            #     f.write(f"\n{obj_name} (first 5 vertices):\n")
-            #     np.savetxt(f, vertices[:15].reshape(5, 3), fmt='%.6f')  # Save first 5 vertices
 
             # Save material parameters
             f.write("\n=== Material Parameters ===\n")

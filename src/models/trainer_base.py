@@ -89,7 +89,7 @@ class MitsubaTrainer(ABC):
 
             for iter_idx, iter in enumerate(iter_pbar):
                 self.on_iter_start()
-                iter_result = self.fitting_step(iter)
+                iter_result = self.fitting_step(iter_idx)
                 loss = iter_result['loss']
                 if not self.manual_optmize:
                     dr.backward(loss)
