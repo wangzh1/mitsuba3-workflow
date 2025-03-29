@@ -8,14 +8,14 @@ shape_to_optimize: ['gen_book']
 material_to_optimize: ['gen_bunny.bsdf.reflectance.value']
 sensor_list: [[278, 278, -800], [1200, 278, 278]]
 target_list: [[278, 278, -799], [1199, 278, 278]]
-criterion: L1
+criterion: MSE
 lr_shape: 1e-1
 lr_material: 50
 lr_pos: 1.0
 max_stages: 2
 max_iterations: 1000
 val_interval: 100
-train_spp: 16
+train_spp: 4
 val_spp: 1024
 device: 'cuda'
 lambda_large_steps: 25.0

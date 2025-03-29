@@ -69,12 +69,7 @@ class TransientTrainer(MitsubaTrainer):
             if len(sensor_list) != len(target_list):
                 raise ValueError("Sensor list and target list must have the same length!")
             
-            self.gt = self.init_multi_view_ground_truth(gt_path, 
-                                                        self.sensor_list, 
-                                                        self.target_list,
-                                                        self.up_list)
-
-
+            self.gt = self.init_multi_view_ground_truth(gt_path, sensor_list, target_list, self.up_list, train_spp)
         else:
             self.gt = self.init_ground_truth(self.scene)
 
@@ -136,7 +131,8 @@ class TransientTrainer(MitsubaTrainer):
                 self.params.update()
             
                 image, transient = mi.render(self.scene, self.params, spp=self.train_spp)
-                loss = self.criterion(image, self.gt['image_ref'][sensor_idx])
+                # loss = self.criterion(image, self.gt['image_ref'][sensor_idx])
+                loss = self.criterion(transient, self.gt['transient_ref'][sensor_idx])
                 total_loss += loss
                 image_vis_list.append(np.array(mi.util.convert_to_bitmap(image)))
             
@@ -145,6 +141,7 @@ class TransientTrainer(MitsubaTrainer):
             print("Material grad:", dr.grad(self.opt_dict['opt_material']['gen_bunny.bsdf.reflectance.value']))
             import pdb; pdb.set_trace()
             self.opt_dict['opt_shape'].step()
+            dr.grad_enabled(self.opt_dict['opt_material']['gen_bunny.bsdf.reflectance.value'])
             self.opt_dict['opt_material'].step()
             self.opt_dict['opt_pos'].step()
             loss = total_loss / len(self.sensor_list)
@@ -205,7 +202,7 @@ class TransientTrainer(MitsubaTrainer):
         return {'image_ref': image_ref, 'transient_ref': transient_ref}
     
     @staticmethod
-    def init_multi_view_ground_truth(gt_path, sensor_list, target_list, up_list) -> Dict[str, Any]:
+    def init_multi_view_ground_truth(gt_path, sensor_list, target_list, up_list, spp) -> Dict[str, Any]:
         """Initialize multi-view ground truth"""
         image_ref_list = []
         transient_ref_list = []
@@ -219,7 +216,7 @@ class TransientTrainer(MitsubaTrainer):
             params['sensor.to_world'] = transform
             params.update() # Need to update the scene after changing the sensor position
 
-            image_ref, transient_ref = mi.render(gt_scene, spp=256)
+            image_ref, transient_ref = mi.render(gt_scene, spp=spp)
             image_ref_list.append(image_ref)
             transient_ref_list.append(transient_ref)
         return {'image_ref': image_ref_list, 'transient_ref': transient_ref_list}

@@ -82,12 +82,12 @@ class MitsubaTrainer(ABC):
         # Outer progress bar for stages
         stage_pbar = tqdm(range(self.max_stages), desc="Stages", unit="stage", position=0)
 
-        for stage in enumerate(stage_pbar):
-            self.on_stage_start(stage)
+        for stage_idx, stage in enumerate(stage_pbar):
+            self.on_stage_start(stage_idx)
             # Inner progress bar for iterations
             iter_pbar = tqdm(range(self.max_iterations), desc="Iterations", unit="iter", position=1, leave=False)
 
-            for iter in iter_pbar:
+            for iter_idx, iter in enumerate(iter_pbar):
                 self.on_iter_start()
                 iter_result = self.fitting_step(iter)
                 loss = iter_result['loss']
@@ -99,13 +99,13 @@ class MitsubaTrainer(ABC):
                     #     self.params[key] = dr.clip(self.params[key], 0.0, 1.0)
                     self.params.update(self.optimizer)
             
-                iter_pbar.set_description(f"Iteration {iter + 1}/{self.max_iterations}, Loss: {loss}")
-                if (iter + 1) % self.val_interval == 0:
+                iter_pbar.set_description(f"Iteration {iter}/{self.max_iterations}, Loss: {loss}")
+                if iter_idx % self.val_interval == 0:
+                    # import pdb; pdb.set_trace()
                     image_vis = iter_result['image_vis']
-                    wandb.log({"val_image": wandb.Image(image_vis),
-                               "loss": np.array(loss)}, step=iter + 1)
+                    wandb.log({"stage": stage_idx, "step": iter_idx, "val_image": wandb.Image(image_vis), "loss": np.array(loss)})
                 self.on_iter_end()
             
-            self.on_stage_end(stage)
+            self.on_stage_end(stage_idx)
             # Update stage progress bar
-            stage_pbar.set_description(f"Stage {stage + 1}/{self.max_stages} completed")
+            stage_pbar.set_description(f"Stage {stage_idx + 1}/{self.max_stages} completed")
